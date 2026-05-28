@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <title>Send - wApp Wallet</title>
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+    
+    <!-- CSS -->
+    <!-- Note: ?v=3 cache-buster - increment when CSS changes (e.g., ?v=4) -->
+    <link rel="stylesheet" href="/css/main.css?v=3">
+    
+    <!-- QR Code Scanner -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+
+    <div id="sendView" class="view">
+        
+        <!-- Header with back button -->
+        <header class="app-header">
+            <button onclick="sendPage.goBack()" class="btn-icon">←</button>
+            <h1>Send Bitcoin</h1>
+            <div style="width: 44px;"></div> <!-- Spacer -->
+        </header>
+
+        <!-- Send Form -->
+        <div class="send-container">
+            
+            <!-- Recipient Address -->
+            <div class="send-field">
+                <label class="send-label">Recipient Address</label>
+                <div class="input-with-button">
+                    <input 
+                        type="text" 
+                        id="recipientAddress" 
+                        class="send-input" 
+                        placeholder="bc1q..."
+                        oninput="sendPage.validateAddress()">
+                    <button onclick="sendPage.showQROptions()" class="btn-icon-input" title="Scan QR">📷</button>
+                </div>
+                <div id="addressError" class="error-text" style="display:none;"></div>
+            </div>
+
+            <!-- Amount -->
+            <div class="send-field">
+                <label class="send-label">Amount (<span id="currentUnit">μBTC</span>)</label>
+                <input 
+                    type="number" 
+                    id="amountInput" 
+                    class="send-input" 
+                    placeholder="0.00"
+                    step="any"
+                    oninput="sendPage.updateCalculations()">
+                <div id="amountEquivalent" class="equivalent-text"></div>
+                <div id="amountError" class="error-text" style="display:none;"></div>
+            </div>
+
+            <!-- Fee Rate -->
+            <div class="send-field">
+                <label class="send-label">Fee Rate</label>
+                <div class="fee-slider-container">
+                    <input 
+                        type="range" 
+                        id="feeRateSlider" 
+                        min="0" 
+                        max="10" 
+                        value="2" 
+                        step="0.2"
+                        oninput="sendPage.updateCalculations()">
+                    <div class="fee-display">
+                        <span id="feeRateValue">2</span> sat/vByte
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Summary -->
+            <div class="tx-summary">
+                <div class="summary-title">Transaction Summary</div>
+                <div class="summary-row">
+                    <span>Amount:</span>
+                    <span id="summaryAmount">---</span>
+                </div>
+                <div class="summary-row">
+                    <span>Network Fee:</span>
+                    <span id="summaryFee">---</span>
+                </div>
+                <div class="summary-divider"></div>
+                <div class="summary-row summary-total">
+                    <span>Total:</span>
+                    <span id="summaryTotal">---</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="send-actions">
+                <button id="sendButton" onclick="sendPage.initiateSend()" class="btn-primary" disabled>
+                    Send Bitcoin
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- QR Scanner Options Modal -->
+    <div id="qrOptionsModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Scan QR Code</h3>
+                <button onclick="sendPage.closeQROptions()" class="btn-close">✕</button>
+            </div>
+            <div class="qr-options">
+                <button onclick="sendPage.scanWithCamera()" class="option-btn">
+                    <span class="option-icon">📷</span>
+                    <span class="option-text">Scan with Camera</span>
+                </button>
+                <button onclick="sendPage.scanFromGallery()" class="option-btn">
+                    <span class="option-icon">🖼️</span>
+                    <span class="option-text">Choose from Gallery</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Scanner Modal -->
+    <div id="qrScannerModal" class="modal" style="display:none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Scan QR Code</h3>
+                <button onclick="sendPage.stopScanning()" class="btn-close">✕</button>
+            </div>
+            <div id="qrReader" class="qr-reader"></div>
+            <div class="qr-help-text">Position the QR code within the frame</div>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div id="passwordModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Enter Password</h3>
+                <button onclick="sendPage.closePasswordModal()" class="btn-close">✕</button>
+            </div>
+            <div class="password-content">
+                <p class="password-instructions">Confirm transaction by entering your wallet password:</p>
+                <div class="password-input-group">
+                    <input 
+                        type="password" 
+                        id="walletPassword" 
+                        class="send-input" 
+                        placeholder="Enter password"
+                        onkeypress="if(event.key==='Enter') sendPage.confirmSend()">
+                    <button onclick="sendPage.togglePasswordVisibility()" class="btn-icon-input">👁️</button>
+                </div>
+                <div id="passwordError" class="error-text" style="display:none;"></div>
+                <div class="modal-actions">
+                    <button onclick="sendPage.closePasswordModal()" class="btn-secondary">Cancel</button>
+                    <button onclick="sendPage.confirmSend()" class="btn-primary">Confirm & Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="success-header">
+                <div class="success-icon">✓</div>
+                <h3>Transaction Broadcast</h3>
+            </div>
+            <div class="success-content">
+                <p>Your transaction has been sent to the network!</p>
+                
+                <div class="tx-id-section">
+                    <div class="tx-id-label">Transaction ID:</div>
+                    <div id="txIdDisplay" class="tx-id-value"></div>
+                    <button onclick="sendPage.copyTxId()" class="btn-secondary btn-small">Copy</button>
+                </div>
+
+                <div class="info-box">
+                    <span class="info-icon">ⓘ</span>
+                    <span>Balance will be updated as soon as your transaction has been included in a new block.</span>
+                </div>
+
+                <div class="success-actions">
+                    <button id="explorerBtn" onclick="sendPage.openExplorer()" class="btn-secondary">
+                        View on Block Explorer
+                    </button>
+                    <button onclick="sendPage.goBackToDashboard()" class="btn-primary">
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Sending transaction...</div>
+    </div>
+
+    <!-- JavaScript -->
+    <!-- Note: ?v=7 cache-buster - increment when JS changes (e.g., ?v=8) -->
+    <script src="/js/storage.js?v=7"></script>
+    <script src="/js/api.js?v=7"></script>
+    <script src="/js/wallet.js?v=7"></script>
+    <script src="/js/send.js?v=7"></script>
+
+</body>
+</html>

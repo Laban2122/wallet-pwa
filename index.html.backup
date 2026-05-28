@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="wApp">
+    
+    <title>wApp Wallet</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    
+    <!-- QR Code Libraries -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        h2 {
+            color: #666;
+            font-size: 18px;
+            margin-top: 0;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        button:active {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.connected {
+            background: #28a745;
+            color: white;
+        }
+        #qrScanner {
+            margin-top: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+        #qrScanner video {
+            width: 100%;
+            border-radius: 8px;
+        }
+        .scanner-controls {
+            margin-top: 10px;
+            text-align: center;
+        }
+        .scanner-controls button {
+            background: #dc3545;
+        }
+        .scanner-status {
+            margin-top: 10px;
+            padding: 8px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            color: #856404;
+            font-size: 14px;
+            text-align: center;
+        }
+        .card h1 {
+            font-size: 1.2rem;          /* ≈28–29px — balanced for mobile cards */
+            margin: 0.4rem 0 0.8rem;    /* tighter vertical spacing */
+            line-height: 1.2;           /* prevents excessive height */
+            text-align: center;         /* optional: looks nicer in cards */
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>📱 IPv6 Mobile Server</h1>
+        <div class="info result">
+            <strong>Status:</strong> <span class="status connected">CONNECTED</span><br>
+            <strong>Server:</strong> IPv6 Mobile Server v1.0<br>
+            <strong>Connection:</strong> HTTPS + TLS
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📱 Pair Device</h2>
+        <p style="font-size: 14px; color: #666; margin: 10px 0;">
+            Authenticate your device by scanning a QR code displayed on your PC screen.
+        </p>
+        <button onclick="requestPairing()">Request Pairing</button>
+        <div id="pairingResult"></div>
+        
+        <!-- QR Scanner Container -->
+        <div id="qrScannerContainer" style="display:none;">
+            <div class="scanner-status">📷 Point camera at QR code on your PC screen</div>
+            <div id="qrScanner"></div>
+            <div class="scanner-controls">
+                <button onclick="stopScanner()">Cancel Scanning</button>
+            </div>
+        </div>
+        
+        <!-- Manual Code Input (fallback) -->
+        <div id="pairingCodeInput" style="display:none; margin-top:15px;">
+            <p style="font-size: 13px; color: #666;">Camera not working?</p>
+            <input type="text" id="pairingCode" placeholder="Paste pairing code here">
+            <button onclick="completePairingManual()">Complete Pairing</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>👤 Get User Info (Protected)</h2>
+        <button onclick="testUserInfo()">Get User Info</button>
+        <div id="userResult"></div>
+    </div>
+
+    <script>
+        let accessToken = null;
+        let refreshToken = null;
+
+        // ====================================================================
+        // AUTO-RENEWAL FUNCTIONS
+        // ====================================================================
+
+        function parseJWT(token) {
+            /**
+             * Parse JWT token to get payload (without validation)
+             */
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (error) {
+                console.error('Failed to parse JWT:', error);
+                return null;
+            }
+        }
+
+        async function checkAndRenewToken() {
+            /**
+             * Check if refresh token needs renewal and renew if necessary
+             * Called on page load and periodically
+             */
+            if (!refreshToken) {
+                return;
+            }
+
+            // Check token expiry
+            const tokenData = parseJWT(refreshToken);
+            if (!tokenData || !tokenData.exp) {
+                console.log('Invalid refresh token');
+                return;
+            }
+
+            // Calculate days until expiry
+            const expiryTime = tokenData.exp * 1000; // Convert to milliseconds
+            const currentTime = Date.now();
+            const daysUntilExpiry = (expiryTime - currentTime) / (1000 * 60 * 60 * 24);
+
+            console.log(`Refresh token expires in ${daysUntilExpiry.toFixed(1)} days`);
+
+            // Check if renewal needed (< 14 days)
+            if (daysUntilExpiry < 14 && daysUntilExpiry > 0) {
+                console.log('Token renewal needed, requesting...');
+
+                try {
+                    const response = await fetch('/auth/renew', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ refresh_token: refreshToken })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.renewed) {
+                        // Store new tokens
+                        refreshToken = data.refresh_token;
+                        accessToken = data.access_token;
+                        
+                        // Save to localStorage
+                        localStorage.setItem('refreshToken', refreshToken);
+                        
+                        console.log('✓ Tokens auto-renewed successfully!');
+                        
+                        // Show notification to user (optional)
+                        const statusDiv = document.querySelector('.info.result');
+                        if (statusDiv) {
+                            statusDiv.innerHTML += '<br><strong>🔄 Tokens auto-renewed (90 days)</strong>';
+                        }
+                    } else if (data.renewed === false) {
+                        console.log(`Token renewal not needed yet (${data.days_remaining} days remaining)`);
+                    }
+                } catch (error) {
+                    console.error('Token renewal failed:', error);
+                }
+            } else if (daysUntilExpiry <= 0) {
+                console.log('Refresh token expired, user needs to re-pair');
+                // Clear expired token
+                localStorage.removeItem('refreshToken');
+                refreshToken = null;
+                accessToken = null;
+            }
+        }
+
+        // Load saved refresh token on page load
+        window.onload = async function() {
+            console.log('Page loaded, checking authentication...');
+            
+            // Try to load saved refresh token
+            const savedToken = localStorage.getItem('refreshToken');
+            if (savedToken) {
+                refreshToken = savedToken;
+                console.log('Found saved refresh token');
+                
+                // Check if it needs renewal
+                await checkAndRenewToken();
+                
+                // Get access token if we have valid refresh token
+                if (refreshToken) {
+                    await getAccessTokenFromRefresh();
+                }
+            }
+        };
+
+        // Check for renewal daily while page is open
+        setInterval(async () => {
+            await checkAndRenewToken();
+        }, 24 * 60 * 60 * 1000); // Every 24 hours
+
+        // ====================================================================
+        // PAIRING FUNCTIONS WITH QR SCANNER
+        // ====================================================================
+
+        let html5QrCode = null;
+
+        async function requestPairing() {
+            const resultDiv = document.getElementById('pairingResult');
+            const codeInputDiv = document.getElementById('pairingCodeInput');
+            const scannerContainer = document.getElementById('qrScannerContainer');
+            
+            resultDiv.innerHTML = '<div class="info result">Requesting pairing...</div>';
+            codeInputDiv.style.display = 'none';
+            scannerContainer.style.display = 'none';
+            
+            try {
+                const response = await fetch('/pair/request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        device_name: navigator.userAgent.includes('iPhone') ? 'iPhone' : 
+                                   navigator.userAgent.includes('Android') ? 'Android' : 
+                                   'Mobile Device'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div class="success result">✓ Pairing Request Sent!
+
+📺 Look at your PC screen - QR code displayed!
+📷 Camera starting automatically...</div>`;
+                    
+                    // Automatically start QR scanner
+                    setTimeout(() => startQrScanner(), 500);
+                    
+                } else {
+                    resultDiv.innerHTML = `<div class="error result">✗ Pairing Request Failed
+
+Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error result">✗ Network Error
+
+${error.message}</div>`;
+            }
+        }
+
+        async function startQrScanner() {
+            const scannerContainer = document.getElementById('qrScannerContainer');
+            const codeInputDiv = document.getElementById('pairingCodeInput');
+            
+            scannerContainer.style.display = 'block';
+            
+            try {
+                html5QrCode = new Html5Qrcode("qrScanner");
+                
+                await html5QrCode.start(
+                    { facingMode: "environment" }, // Use back camera
+                    {
+                        fps: 10,
+                        qrbox: { width: 250, height: 250 }
+                    },
+                    async (decodedText, decodedResult) => {
+                        // QR Code detected! Auto-complete pairing
+                        console.log(`QR Code detected: ${decodedText}`);
+                        await stopScanner();
+                        await completePairingAuto(decodedText);
+                    },
+                    (errorMessage) => {
+                        // Scanning in progress (ignore errors)
+                    }
+                );
+                
+                // Show manual input as fallback after 5 seconds
+                setTimeout(() => {
+                    if (codeInputDiv.style.display === 'none') {
+                        codeInputDiv.style.display = 'block';
+                    }
+                }, 5000);
+                
+            } catch (err) {
+                console.error('Camera error:', err);
+                scannerContainer.style.display = 'none';
+                codeInputDiv.style.display = 'block';
+                
+                document.getElementById('pairingResult').innerHTML = 
+                    '<div class="error result">✗ Camera Access Denied\n\nPlease paste the pairing code manually below.</div>';
+            }
+        }
+
+        async function stopScanner() {
+            if (html5QrCode) {
+                try {
+                    await html5QrCode.stop();
+                    html5QrCode = null;
+                } catch (err) {
+                    console.error('Error stopping scanner:', err);
+                }
+            }
+            document.getElementById('qrScannerContainer').style.display = 'none';
+        }
+
+        async function completePairingAuto(scannedCode) {
+            const resultDiv = document.getElementById('pairingResult');
+            
+            resultDiv.innerHTML = '<div class="info result">✓ QR Code Scanned!\n\nCompleting pairing...</div>';
+            
+            // Parse QR code (extract code from JSON if needed)
+            let code = scannedCode;
+            try {
+                const parsed = JSON.parse(scannedCode);
+                if (parsed.code) {
+                    code = parsed.code;
+                }
+            } catch (e) {
+                // Not JSON, use as-is
+            }
+            
+            await completePairingWithCode(code);
+        }
+
+        async function completePairingManual() {
+            const pairingCode = document.getElementById('pairingCode').value.trim();
+            const resultDiv = document.getElementById('pairingResult');
+            
+            if (!pairingCode) {
+                resultDiv.innerHTML = '<div class="error result">✗ Please enter the pairing code</div>';
+                return;
+            }
+            
+            await stopScanner();
+            await completePairingWithCode(pairingCode);
+        }
+
+        async function completePairingWithCode(code) {
+            const resultDiv = document.getElementById('pairingResult');
+            
+            if (!code) {
+                resultDiv.innerHTML = '<div class="error result">✗ No pairing code provided</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="info result">Completing pairing...</div>';
+            
+            try {
+                const response = await fetch('/pair/complete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        pairing_code: code,
+                        device_name: navigator.userAgent.includes('iPhone') ? 'iPhone' : 
+                                   navigator.userAgent.includes('Android') ? 'Android' : 
+                                   'Mobile Device'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    refreshToken = data.refresh_token;
+                    
+                    // Save to localStorage for persistence
+                    localStorage.setItem('refreshToken', refreshToken);
+                    
+                    // Get initial access token
+                    await getAccessTokenFromRefresh();
+                    
+                    resultDiv.innerHTML = `<div class="success result">✓ Pairing Completed! 🎉
+
+Device ID: ${data.device_id}
+Token expires: ${data.expires_in / (24 * 3600)} days
+
+Your device is now authenticated!
+Token will auto-renew when < 10 days remaining.
+You can now use protected endpoints below.</div>`;
+                    
+                    // Hide all pairing UI
+                    document.getElementById('qrScannerContainer').style.display = 'none';
+                    document.getElementById('pairingCodeInput').style.display = 'none';
+                    document.getElementById('pairingCode').value = '';
+                } else {
+                    await stopScanner();
+                    resultDiv.innerHTML = `<div class="error result">✗ Pairing Failed
+
+Error: ${data.error}
+
+The code may have expired or already been used.
+Try "Request Pairing" again.</div>`;
+                    document.getElementById('pairingCodeInput').style.display = 'block';
+                }
+            } catch (error) {
+                await stopScanner();
+                resultDiv.innerHTML = `<div class="error result">✗ Network Error
+
+${error.message}</div>`;
+                document.getElementById('pairingCodeInput').style.display = 'block';
+            }
+        }
+
+        async function getAccessTokenFromRefresh() {
+            if (!refreshToken) return;
+            
+            try {
+                const response = await fetch('/auth/refresh', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    accessToken = data.access_token;
+                }
+            } catch (error) {
+                console.error('Failed to refresh token:', error);
+            }
+        }
+
+        // ====================================================================
+        // PROTECTED ENDPOINT FUNCTIONS
+        // ====================================================================
+
+        async function testUserInfo() {
+            const resultDiv = document.getElementById('userResult');
+            
+            if (!accessToken) {
+                resultDiv.innerHTML = '<div class="error result">✗ Please pair device first</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="info result">Fetching user info...</div>';
+            
+            try {
+                const response = await fetch('/api/user', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Format device ID display
+                    let displayUsername = data.username;
+                    if (data.username.startsWith('device:')) {
+                        const deviceId = data.username.substring(7); // Remove "device:" prefix
+                        displayUsername = `Device:\n${deviceId}`;
+                    }
+                    
+                    resultDiv.innerHTML = `<div class="success result">✓ API Call Successful!
+
+${displayUsername}
+Authenticated: ${data.authenticated}
+
+JWT authentication is working!</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error result">✗ API Call Failed
+
+Error: ${data.error}
+
+Token may have expired. Try pairing again.</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error result">✗ Network Error
+
+${error.message}</div>`;
+            }
+        }
+
+        // Auto-fill on page load
+        window.onload = function() {
+            console.log('Mobile Server Test Page Loaded');
+        };
+    </script>
+</body>
+</html>

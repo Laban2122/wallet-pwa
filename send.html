@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <title>Send - wApp Wallet</title>
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+    
+    <!-- Inline CSS -->
+    <style>
+        /* ============================================ */
+        /* RESET & BASE STYLES */
+        /* ============================================ */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            font-size: 16px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ============================================ */
+        /* VIEWS */
+        /* ============================================ */
+
+        .view {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ============================================ */
+        /* HEADER */
+        /* ============================================ */
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 20px;
+            background: #000;
+            border-bottom: 1px solid #222;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .app-header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        /* ============================================ */
+        /* BUTTONS */
+        /* ============================================ */
+
+        button {
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: #fff;
+            color: #000;
+            border-radius: 12px;
+            font-weight: 700;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 16px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .btn-secondary:active {
+            background: #333;
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-small {
+            padding: 10px 16px;
+            font-size: 14px;
+        }
+
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            background: transparent;
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            padding: 0;
+        }
+
+        .btn-icon:active {
+            background: #222;
+        }
+
+        .btn-close {
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 24px;
+            font-weight: 400;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-close:active {
+            background: #222;
+        }
+
+        /* ============================================ */
+        /* MODAL */
+        /* ============================================ */
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #222;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-large .modal-content {
+            max-width: 500px;
+        }
+
+        /* ============================================ */
+        /* SEND PAGE */
+        /* ============================================ */
+
+        .send-container {
+            padding: 10px;
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .send-field {
+            margin-bottom: 14px;
+        }
+
+        .send-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #999;
+        }
+
+        .send-input {
+            width: 100%;
+            padding: 6px 16px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            font-family: inherit;
+        }
+
+        .send-input:focus {
+            outline: none;
+            border-color: #666;
+        }
+
+        .send-input::placeholder {
+            color: #666;
+        }
+
+        .input-with-button {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .input-with-button .send-input {
+            flex: 1;
+        }
+
+        .btn-icon-input {
+            width: 48px;
+            height: 28px;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 12px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .btn-icon-input:active {
+            background: #333;
+        }
+
+        .equivalent-text {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .error-text {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #d32f2f;
+        }
+
+        .fee-slider {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .fee-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .fee-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .fee-display {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .fee-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .fee-header .send-label {
+            margin-bottom: 0;
+        }
+
+        .tx-summary {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 32px;
+        }
+
+        .summary-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            font-size: 15px;
+        }
+
+        .summary-divider {
+            height: 1px;
+            background: #333;
+            margin: 12px 0;
+        }
+
+        .summary-total {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .send-actions {
+            margin-top: 24px;
+            margin-bottom: 40px;
+        }
+
+        /* ============================================ */
+        /* QR SCANNER MODALS */
+        /* ============================================ */
+
+        .qr-options {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-btn {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 12px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 16px;
+            text-align: left;
+            width: 100%;
+        }
+
+        .option-btn:active {
+            background: #222;
+        }
+
+        .option-icon {
+            font-size: 24px;
+        }
+
+        .option-text {
+            font-weight: 500;
+        }
+
+        .qr-reader {
+            width: 100%;
+            background: #000;
+        }
+
+        .qr-help-text {
+            padding: 16px 20px;
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* ============================================ */
+        /* PASSWORD MODAL */
+        /* ============================================ */
+
+        .password-content {
+            padding: 20px;
+        }
+
+        .password-instructions {
+            margin-bottom: 16px;
+            color: #999;
+            font-size: 15px;
+        }
+
+        .password-input-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .password-input-group .send-input {
+            flex: 1;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .modal-actions .btn-secondary,
+        .modal-actions .btn-primary {
+            flex: 1;
+            padding: 14px;
+        }
+
+        /* ============================================ */
+        /* SUCCESS MODAL */
+        /* ============================================ */
+
+        .success-header {
+            padding: 32px 20px 20px;
+            text-align: center;
+            border-bottom: 1px solid #222;
+        }
+
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            background: #4CAF50;
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            margin: 0 auto 16px;
+        }
+
+        .success-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .success-content {
+            padding: 24px 20px;
+        }
+
+        .success-content > p {
+            text-align: center;
+            color: #999;
+            margin-bottom: 24px;
+        }
+
+        .tx-id-section {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .tx-id-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tx-id-value {
+            font-family: "Courier New", Courier, monospace;
+            font-size: 12px;
+            word-break: break-all;
+            color: #fff;
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        .info-box {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #999;
+            line-height: 1.5;
+        }
+
+        .info-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .success-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* ============================================ */
+        /* LOADING OVERLAY */
+        /* ============================================ */
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-overlay .loading-text {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #999;
+        }
+    </style>
+    
+    <!-- QR Code Scanner -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+
+    <div id="sendView" class="view">
+        
+        <!-- Header with back button -->
+        <header class="app-header">
+            <button onclick="sendPage.goBack()" class="btn-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="4">
+                    <polygon points="8,12 14,8 14,16" fill="white"/>
+                    <line x1="14" y1="12" x2="24" y2="12"/>
+                </svg>
+            </button>
+            <h1>Send Bitcoin</h1>
+            <div style="width: 44px;"></div> <!-- Spacer -->
+        </header>
+
+        <!-- Send Form -->
+        <div class="send-container">
+            
+            <!-- Recipient Address -->
+            <div class="send-field">
+                <label class="send-label">Recipient Address</label>
+                <div class="input-with-button">
+                    <input 
+                        type="text" 
+                        id="recipientAddress" 
+                        class="send-input" 
+                        placeholder="bc1q..."
+                        oninput="sendPage.validateAddress()">
+                    <div style="width: 48px; display: flex; align-items: center; justify-content: center;">
+                        <svg onclick="sendPage.showQROptions()" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="white" stroke-width="2" style="cursor: pointer;">
+                            <rect x="3" y="7" width="18" height="12" rx="2"/>
+                            <circle cx="12" cy="13" r="3"/>
+                            <path d="M7 7V5h10v2"/>
+                        </svg>
+                    </div>
+                </div>
+                <div id="addressError" class="error-text" style="display:none;"></div>
+            </div>
+
+            <!-- Amount -->
+            <div class="send-field">
+                <label class="send-label">Amount (<span id="currentUnit">μBTC</span>)</label>
+                <div class="input-with-button">
+                    <input 
+                        type="number" 
+                        id="amountInput" 
+                        class="send-input" 
+                        placeholder="0.00"
+                        step="any"
+                        oninput="sendPage.updateCalculations()">
+                    <div style="width: 48px;"></div> <!-- Spacer to align with address field -->
+                </div>
+                <div id="amountEquivalent" class="equivalent-text"></div>
+                <div id="amountError" class="error-text" style="display:none;"></div>
+            </div>
+
+            <!-- Fee Rate -->
+            <div class="send-field">
+                <div class="fee-header">
+                    <label class="send-label">Fee Rate</label>
+                    <div class="fee-display">
+                        <span id="feeRateValue">2</span> sat/vByte
+                    </div>
+                </div>
+                <input 
+                    type="range" 
+                    id="feeRateSlider" 
+                    min="0" 
+                    max="10" 
+                    value="2" 
+                    step="0.2"
+                    class="fee-slider"
+                    ontouchstart="document.activeElement.blur()"
+                    oninput="sendPage.updateCalculations()">
+            </div>
+
+            <!-- Transaction Summary -->
+            <div class="tx-summary">
+                <div class="summary-title">Transaction Summary</div>
+                <div class="summary-row">
+                    <span>Amount:</span>
+                    <span id="summaryAmount">---</span>
+                </div>
+                <div class="summary-row">
+                    <span>Fee estimate:</span>
+                    <span id="summaryFee">---</span>
+                </div>
+                <div class="summary-divider"></div>
+                <div class="summary-row summary-total">
+                    <span>Total:</span>
+                    <span id="summaryTotal">---</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="send-actions">
+                <button id="sendButton" onclick="sendPage.initiateSend()" class="btn-secondary">
+                    Continue...
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- QR Scanner Options Modal -->
+    <div id="qrOptionsModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Scan QR Code</h3>
+                <button onclick="sendPage.closeQROptions()" class="btn-close">✕</button>
+            </div>
+            <div class="qr-options">
+                <button onclick="sendPage.scanWithCamera()" class="option-btn">
+                    <span class="option-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="7" width="18" height="12" rx="2"/>
+                            <circle cx="12" cy="13" r="3"/>
+                            <path d="M7 7V5h10v2"/>
+                        </svg>
+                    </span>
+                    <span class="option-text">Scan with Camera</span>
+                </button>
+                <button onclick="sendPage.scanFromGallery()" class="option-btn">
+                    <span class="option-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="4" y="4" width="16" height="16" rx="2"/>
+                            <circle cx="9" cy="9" r="1.5"/>
+                            <polyline points="4,18 9,13 13,17 20,10"/>
+                        </svg>
+                    </span>
+                    <span class="option-text">Choose from Gallery</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Scanner Modal -->
+    <div id="qrScannerModal" class="modal" style="display:none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Scan QR Code</h3>
+                <button onclick="sendPage.stopScanning()" class="btn-close">✕</button>
+            </div>
+            <div id="qrReader" class="qr-reader"></div>
+            <div class="qr-help-text">Position the QR code within the frame</div>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div id="passwordModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Enter Password</h3>
+                <button onclick="sendPage.closePasswordModal()" class="btn-close">✕</button>
+            </div>
+            <div class="password-content">
+                <p class="password-instructions" id="sendingSummary"></p>
+                <p class="password-instructions">Confirm transaction by entering your wallet password:</p>
+                <div class="password-input-group">
+                    <input 
+                        type="password" 
+                        id="walletPassword" 
+                        class="send-input" 
+                        placeholder="Enter password"
+                        onkeypress="if(event.key==='Enter') sendPage.confirmSend()">
+                    <svg onclick="sendPage.togglePasswordVisibility()" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="white" stroke-width="1" style="cursor: pointer;">
+                        <path d="M 6 10 Q 12 4 18 10"/>
+                        <path d="M 6 12 Q 12 18 18 12"/>
+                        <line x1="8" y1="8" x2="6" y2="5.5"/>
+                        <line x1="10.5" y1="6.8" x2="10" y2="4"/>
+                        <line x1="13.5" y1="6.8" x2="14" y2="4"/>
+                        <line x1="16" y1="8" x2="18" y2="5.5"/>
+                    </svg>
+                </div>
+                <div id="passwordError" class="error-text" style="display:none;"></div>
+                <div class="modal-actions">
+                    <button onclick="sendPage.closePasswordModal()" class="btn-secondary">Cancel</button>
+                    <button onclick="sendPage.confirmSend()" class="btn-primary">Confirm & Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="success-header">
+                <div class="success-icon">✓</div>
+                <h3>Transaction Broadcast</h3>
+            </div>
+            <div class="success-content">
+                <p>Your transaction has been sent to the network!</p>
+                
+                <div class="tx-id-section">
+                    <div class="tx-id-label">Transaction ID:</div>
+                    <div id="txIdDisplay" class="tx-id-value"></div>
+                    <button onclick="sendPage.copyTxId()" class="btn-secondary btn-small">Copy</button>
+                </div>
+
+                <div class="info-box">
+                    <span class="info-icon">ⓘ</span>
+                    <span>Balance will be updated as soon as your transaction has been included in a new block.</span>
+                </div>
+
+                <div class="success-actions">
+                    <button id="explorerBtn" onclick="sendPage.openExplorer()" class="btn-secondary">
+                        View on Block Explorer
+                    </button>
+                    <button onclick="sendPage.goBackToDashboard()" class="btn-primary">
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Sending transaction...</div>
+    </div>
+
+    <!-- JavaScript -->
+    <!-- Note: ?v=11 cache-buster - increment when JS changes (e.g., ?v=12) -->
+    <script src="/js/storage.js?v=8"></script>
+    <script src="/js/api.js?v=8"></script>
+    <script src="/js/wallet.js?v=8"></script>
+    <script src="/js/send.js?v=11"></script>
+
+</body>
+</html>
