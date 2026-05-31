@@ -116,7 +116,7 @@ class WalletApp {
   async registerServiceWorker() {
     if ('serviceWorker' in navigator) {
       try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        const registration = await navigator.serviceWorker.register('sw.js');
         console.log('[App] Service worker registered:', registration.scope);
 
         // Check for updates
@@ -150,7 +150,7 @@ class WalletApp {
       this.showMessage('✓ Device paired successfully!', 'success');
 
       // Redirect to home and show dashboard
-      window.history.replaceState({}, '', '/');
+      window.history.replaceState({}, '', window.location.pathname);
       
       setTimeout(() => {
         this.showDashboard();
@@ -509,7 +509,7 @@ class WalletApp {
       alert('Cannot send: Node not available. Please wait for node to connect.');
       return;
     }
-    window.location.href = '/send.html';
+    window.location.href = 'send.html';
   }
 
   /**

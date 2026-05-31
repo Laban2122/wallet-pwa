@@ -64,13 +64,11 @@ class SendPage {
 
     // Navigation
     goBack() {
-        window.location.href = '/';
+        window.location.href = 'index.html';
     }
 
     goBackToDashboard() {
-        // Don't trigger balance refresh - user can manually refresh if needed
-        // Adding ?skipRefresh flag to prevent auto-update
-        window.location.href = '/?skipRefresh=1';
+        window.location.href = 'index.html';
     }
 
     // Address validation

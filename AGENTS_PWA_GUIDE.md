@@ -26,7 +26,7 @@ The app supports **three display units** for user-facing amounts:
 | μBTC (micro-bitcoin) | 100 | 2 | μBTC | 100.00 μBTC |
 | satoshi | 1 | 0 | sat | 10000 sat |
 
-**Note**: μ is the Greek letter mu (U+03BC), widely recognized.
+**Note**: μ is the Greek letter mu (U+03BC), widely recognized as meaning micro.
 
 ### Conversion Rules
 

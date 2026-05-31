@@ -236,13 +236,13 @@ body {
 .balance-card {
     padding: 24px 20px;
     text-align: center;
-    background: linear-gradient(180deg, #111 0%, #000 100%);
+    background: linear-gradient(180deg, #000000 0%, #000 100%);
     border-bottom: 1px solid #222;
 }
 
 .balance-label {
     font-size: 14px;
-    color: #f0a500;
+    color: #fff;
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-bottom: 12px;
